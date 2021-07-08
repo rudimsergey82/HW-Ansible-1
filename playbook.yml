@@ -1,0 +1,58 @@
+---
+- hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+
+    - name: Create group Hillel
+      group:
+        name: hillel
+        state: present
+
+    - name: Create user Student
+      user:
+        name=student
+        group=hillel
+        shell=/bin/bash
+        password=student_pass
+        append=yes
+      become: yes
+      become_method: "sudo"
+
+    - name: Ensure epel repo present
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        state: present
+
+- hosts: app
+  become: true
+  tasks:
+
+    - name: Install Apache2
+      yum: name=httpd update_cache=yes state=latest
+
+    - name: Enable service httpd
+      service:
+        name: httpd
+        enabled: yes
+
+- hosts: db
+  become: true
+  tasks:
+
+    - name: Install DB Server 
+      yum:
+        name: [ 'mariadb-server', 'python-PyMySQL' ]
+        state: present
+
+    - name: Run services
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: Create a new database with name 'new_db'
+      mysql_db:
+        name: new_db
+        login_user: root
+        state: present
